@@ -1,0 +1,14 @@
+# 환경 변수 / 비밀 키 (절대 커밋 금지)
+.env
+.env.*
+!.env.example
+
+# 의존성 / 빌드 결과
+node_modules/
+dist/
+.next/
+__pycache__/
+.venv/
+
+# 3단계 file 저장소 데이터
+data/

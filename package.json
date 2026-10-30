@@ -1,0 +1,26 @@
+{
+  "name": "fridge-chef",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "냉장고를 부탁해 - 냉장고 사진으로 식재료를 인식하고 레시피를 추천하는 앱",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test \"test/**/*.test.js\"",
+    "check": "node src/config.js",
+    "example": "node example.js",
+    "test:openrouter": "node test-openrouter.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^5.3.0",
+    "express-rate-limit": "^8.7.2",
+    "multer": "^2.5.0",
+    "sharp": "^0.35.5",
+    "zod": "^4.6.7"
+  }
+}

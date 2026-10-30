@@ -1,9 +1,10 @@
-// lib/openrouter.js chat() 테스트. 전역 fetch를 가짜로 바꿔 실제 API를 부르지 않는다.
+// lib/ai.js chat() 테스트. 전역 fetch를 가짜로 바꿔 실제 API를 부르지 않는다.
 import { test, before, after, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 
+process.env.GEMINI_API_KEY ??= 'test-key';
 process.env.OPENROUTER_API_KEY ??= 'test-key';
-const { chat } = await import('../src/lib/openrouter.js');
+const { chat, requestBody } = await import('../src/lib/ai.js');
 
 // AbortSignal.timeout 타이머는 이벤트 루프를 붙잡지 않는다. 실제로는 서버가 루프를 유지하므로 테스트에서도 유지한다.
 let keepAlive;
@@ -80,14 +81,29 @@ test('200 본문의 다른 error는 재시도 없이 MODEL_ERROR', async () => {
   assert.equal(calls, 1);
 });
 
-test('추론은 기본으로 끄고(reasoning.enabled=false), on이면 요청에 넣지 않는다', async () => {
-  const bodies = [];
+test('추론 off: OpenRouter는 reasoning.enabled=false, Gemini는 reasoning_effort=minimal. on이면 아무것도 넣지 않는다', () => {
+  const base = { model: 'm' };
+  assert.deepEqual(requestBody([], { ...base, provider: 'openrouter', reasoning: 'off' }), { model: 'm', messages: [], reasoning: { enabled: false } });
+  assert.deepEqual(requestBody([], { ...base, provider: 'gemini', reasoning: 'off' }), { model: 'm', messages: [], reasoning_effort: 'minimal' });
+  for (const provider of ['openrouter', 'gemini']) {
+    assert.deepEqual(requestBody([], { ...base, provider, reasoning: 'on' }), { model: 'm', messages: [] });
+  }
+});
+
+test('chat()은 설정된 제공자의 /chat/completions로 Bearer 키와 함께 보낸다', async () => {
+  let request;
   globalThis.fetch = async (url, init) => {
-    bodies.push(JSON.parse(init.body));
+    request = { url, init };
     return jsonResponse(200, { choices: [{ message: { content: 'ok' } }] });
   };
-  await chat([], { model: 'm' });
-  await chat([], { model: 'm', reasoning: 'on' });
-  assert.deepEqual(bodies[0].reasoning, { enabled: false });
-  assert.equal('reasoning' in bodies[1], false);
+  await chat([{ role: 'user', content: '안녕' }], { model: 'm' });
+  assert.match(request.url, /\/chat\/completions$/);
+  assert.match(request.init.headers.Authorization, /^Bearer \S+/);
+  assert.deepEqual(JSON.parse(request.init.body).messages, [{ role: 'user', content: '안녕' }]);
+});
+
+// Gemini OpenAI 호환 경로는 오류 본문을 배열([{ error }])로 줄 때가 있다
+test('Gemini 배열 형식 오류 본문도 읽는다: 429면 RATE_LIMITED', async () => {
+  globalThis.fetch = async () => jsonResponse(429, [{ error: { code: 429, message: 'Resource exhausted', status: 'RESOURCE_EXHAUSTED' } }]);
+  await assert.rejects(chat([], { model: 'm', timeoutMs: 1000 }), { code: 'RATE_LIMITED' });
 });

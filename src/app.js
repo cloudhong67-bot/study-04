@@ -3,7 +3,7 @@
 //         나머지 /api는 401, 메인 화면(/)은 로그인 페이지로 보낸다.
 import express from 'express';
 import { fileURLToPath } from 'node:url';
-import { chat as openrouterChat } from './lib/openrouter.js';
+import { chat as aiChat } from './lib/ai.js';
 import { config } from './config.js';
 import { authenticate, requireUser, sameOrigin } from './lib/auth.js';
 import { AppError, errors, sendError } from './lib/errors.js';
@@ -32,7 +32,7 @@ function securityHeaders(req, res, next) {
   next();
 }
 
-export function createApp({ chat = openrouterChat, rateLimit = true, storage, auth = config.auth } = {}) {
+export function createApp({ chat = aiChat, rateLimit = true, storage, auth = config.auth } = {}) {
   if (!storage) throw new Error('createApp: storage가 필요합니다 (사용자·레시피 저장)');
   const app = express();
   app.disable('x-powered-by');

@@ -19,9 +19,10 @@ const server = createApp({ storage }).listen(config.port, () => {
     level: 'info',
     msg: 'server started',
     port: config.port,
-    visionModel: config.openrouter.visionModel,
-    textModel: config.openrouter.textModel,
-    reasoning: config.openrouter.reasoning,
+    aiProvider: config.ai.provider,
+    visionModel: config.ai.visionModel,
+    textModel: config.ai.textModel,
+    reasoning: config.ai.reasoning,
     storage: storage.driver,
   }));
 });

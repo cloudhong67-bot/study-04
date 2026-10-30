@@ -201,6 +201,13 @@ docker run --rm -p 8080:8080 --env-file .env fridge-chef
 - 모델 응답을 JSON으로 읽지 못하면, 직전 응답을 assistant 메시지로 넣고 "JSON만 다시 출력" 지시를 붙여 1회 다시 요청한다. 이때 이미지는 다시 보내지 않는다.
 - 직전 응답이 비어 있으면 처음 요청(이미지 포함)을 그대로 다시 보낸다.
 
+**AI 제공자 변경: OpenRouter → Gemini (2026-10-30)**
+- 무료 OpenRouter 모델(`nvidia/nemotron-3.5-super-vl:free`)이 연결 실패와 시간 초과가 잦아 기본 AI를 Google Gemini로 바꿨다. 이 문서의 "OpenRouter" 요구 사항(키, 모델, 환경 변수)은 아래로 대체된다.
+- Gemini의 OpenAI 호환 경로(`/v1beta/openai/chat/completions`)를 쓴다. 메시지 형식(이미지 base64 data URL 포함)이 같아서 프롬프트와 파싱은 그대로다.
+- 환경 변수: `AI_PROVIDER`(gemini 기본 / openrouter), `GEMINI_API_KEY`, `GEMINI_MODEL`(기본 `gemini-3.5-flash-lite`), `AI_TIMEOUT_MS`, `AI_REASONING`. 고른 제공자의 키만 필수다. 예전 이름(`OPENROUTER_TIMEOUT_MS`, `OPENROUTER_REASONING`, `AI_MODEL`)도 읽는다.
+- 측정 (같은 키, 짧은 질문): `gemini-3.5-flash-lite` 약 1초, `gemini-3.6-flash` 약 3초, `gemini-3.8-flash`는 40초 안에 응답 없음. 과일 사진으로 앱 흐름 전체: 인식 3.5초, 레시피 3개 3.8초(전: 인식 2~4초, 레시피 7~9초, 연결 실패 잦음).
+- `AI_REASONING=off`이면 Gemini에는 `reasoning_effort: minimal`을 보낸다. Gemini 3.x는 추론을 완전히 끌 수 없다.
+
 **요청 제한(429) 감지**
 - OpenRouter는 200 헤더를 먼저 보낸 뒤에 생긴 오류를, `choices` 없이 본문의 `error`(`{ "code": 429, ... }`)로 보낸다(OpenRouter 오류 문서).
 - 전에는 상태 코드(200)만 보고 재시도 없이 `502 MODEL_ERROR`로 끝냈다. 이제 본문 `error.code`를 상태로 보아, 429면 HTTP 429와 똑같이 재시도한다. 남은 시간이 없으면 `429 RATE_LIMITED`다.

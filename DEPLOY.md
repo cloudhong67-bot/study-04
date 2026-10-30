@@ -6,7 +6,7 @@
 
 | 리소스 | 용도 | 인증 |
 |---|---|---|
-| Container App (`fridgechef-app`) | 앱 실행. 외부 HTTPS, 포트 8080, 복제본 0~2개 | OpenRouter 키와 세션 서명 키(`SESSION_SECRET`)는 secret으로 넣음 |
+| Container App (`fridgechef-app`) | 앱 실행. 외부 HTTPS, 포트 8080, 복제본 0~2개 | Gemini 키와 세션 서명 키(`SESSION_SECRET`)는 secret으로 넣음 |
 | Container Registry (Basic) | 이미지 저장 | 관리 ID로 이미지 받기(AcrPull). admin 계정 끔 |
 | Cosmos DB for NoSQL (서버리스) | DB `fridge-chef`. 컨테이너 `recipes`(파티션 키 `/clientId` = 사용자 ID), `users`(파티션 키 `/id` = 이메일, 비밀번호는 해시만 저장) | 관리 ID(데이터 기여자 역할). 키 인증 끔 |
 | 사용자 할당 관리 ID | ACR과 Cosmos DB 접근 | — |
@@ -25,7 +25,7 @@ bash infra/deploy.sh
 ```
 
 - 기본값은 리소스 그룹 `rg-fridge-chef`, 지역 `koreacentral`이다. 바꾸려면 `RESOURCE_GROUP`, `LOCATION`, `PREFIX` 환경 변수를 설정한다.
-- OpenRouter 키는 `.env`의 `OPENROUTER_API_KEY` 한 줄만 읽어서 Container App secret으로 넣는다.
+- Gemini 키는 `.env`의 `GEMINI_API_KEY` 한 줄만 읽어서 Container App secret으로 넣는다. 앱은 Gemini(`AI_PROVIDER=gemini`, 모델 `gemini-3.5-flash-lite`)로 배포된다.
 - 세션 서명 키(`SESSION_SECRET`)는 운영용으로 새로 만든다. 로컬 `.env`의 값은 쓰지 않는다.
   - 스크립트를 다시 실행하면 키가 바뀌어 모든 사용자가 로그아웃된다.
   - 기존 키를 유지하려면 그 값을 `SESSION_SECRET` 환경 변수로 넘긴다.
@@ -80,9 +80,9 @@ GitHub 저장소에서 할 일:
 
 ## 3. 운영
 
-- **OpenRouter 키 교체:**
+- **Gemini 키 교체:**
   ```bash
-  az containerapp secret set -n fridgechef-app -g rg-fridge-chef --secrets openrouter-api-key=<새 키>
+  az containerapp secret set -n fridgechef-app -g rg-fridge-chef --secrets gemini-api-key=<새 키>
   az containerapp revision restart -n fridgechef-app -g rg-fridge-chef --revision <리비전>
   ```
 - **세션 키 교체:** 아래 명령으로 바꾼 뒤 재시작한다. 교체하면 모든 사용자가 다시 로그인해야 한다.
@@ -96,7 +96,7 @@ GitHub 저장소에서 할 일:
   로그는 JSON 한 줄 형식이고, API 키나 레시피 본문은 남기지 않는다.
 - **설정 변경** (모델, 추론 on/off 등):
   ```bash
-  az containerapp update -n fridgechef-app -g rg-fridge-chef --set-env-vars OPENROUTER_REASONING=on
+  az containerapp update -n fridgechef-app -g rg-fridge-chef --set-env-vars AI_REASONING=on GEMINI_MODEL=gemini-3.6-flash
   ```
 - **비용:**
   - 복제본 최소 0개라 요청이 없으면 컨테이너 비용이 들지 않는다. 대신 첫 요청은 몇 초 늦어진다.

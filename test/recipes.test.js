@@ -2,6 +2,7 @@
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 
+process.env.GEMINI_API_KEY ??= 'test-key';
 process.env.OPENROUTER_API_KEY ??= 'test-key';
 const { matchesOwned, isPantry, violatesDietary, finalizeRecipes, generateRequestSchema, generateResponseSchema } = await import('../src/lib/recipes.js');
 const { startApp } = await import('./helpers.js');

@@ -27,7 +27,7 @@ tools: Read, Grep, Glob, Bash, Edit, Write
 **품질과 바꾸지 않기**
 - 기능과 응답 형식(API 계약, 오류 코드, 한국어 메시지)을 바꾸지 않는다.
 - 결과 품질에 영향을 주는 변경은 **직접 적용하지 않는다.** 측정 결과와 함께 제안만 한다.
-  - 예: 모델 교체, `OPENROUTER_REASONING` 변경, 프롬프트에서 규칙 삭제, 출력 개수 줄이기, 이미지 해상도를 크게 낮추기
+  - 예: 모델 교체, `AI_REASONING` 변경, 프롬프트에서 규칙 삭제, 출력 개수 줄이기, 이미지 해상도를 크게 낮추기
 - 보안·안전 장치를 성능 때문에 약하게 만들지 않는다.
   - 예: scrypt 비용, 요청 제한, 인증, 입력 검증, 본문 크기 제한
 - 캐시를 넣을 때는 사용자 사이에 데이터가 섞이지 않는지 먼저 확인한다. 로그인한 사용자별 데이터는 공유 캐시에 넣지 않는다.
@@ -53,7 +53,7 @@ tools: Read, Grep, Glob, Bash, Edit, Write
 
 | 구간 | 실측 / 상태 | 볼 곳 |
 |---|---|---|
-| 레시피 생성 (AI) | 추론 끔: 7~9초(출력 토큰 약 1,000개). 추론 켬: 28~120초 이상, 시간 초과 발생 | `src/lib/openrouter.js`, `src/prompts/recipes.js`, `src/routes/recipes.js` |
+| 레시피 생성 (AI) | 추론 끔: 7~9초(출력 토큰 약 1,000개). 추론 켬: 28~120초 이상, 시간 초과 발생 | `src/lib/ai.js`, `src/prompts/recipes.js`, `src/routes/recipes.js` |
 | 사진 인식 (AI) | 추론 끔: 2~4초. 추론 켬: 11~90초 이상 | `src/prompts/recognize.js`, `src/routes/ingredients.js` |
 | 모델에 요청하는 레시피 수 | 요청 개수 + 1개 (서버에서 걸러낼 여유분) | `EXTRA_RECIPES` |
 | 이미지 | 브라우저 1600px JPEG → 서버 sharp 1280px로 다시 줄임 (중복) | `public/app.js` `prepareImage`, `src/lib/image.js` |
@@ -68,7 +68,7 @@ tools: Read, Grep, Glob, Bash, Edit, Write
 
 ## 측정 방법
 
-- **서버 로그:** 모델 호출마다 `{"msg":"openrouter call","ms":…,"tokens":…}`이 남는다. 앞뒤 구간과 비교해 모델 시간과 서버 처리 시간을 나눈다.
+- **서버 로그:** 모델 호출마다 `{"msg":"ai call","ms":…,"tokens":…}`이 남는다. 앞뒤 구간과 비교해 모델 시간과 서버 처리 시간을 나눈다.
   - 로그 보기: `docker logs <측정용 컨테이너>`, 또는 `npm start` 출력
 - **API 시간:** `curl -s -o /dev/null -w '%{time_total}\n'`을 쓴다.
   - 로그인이 필요하다. 가입 API로 쿠키를 받고 `-b`/`-H 'Cookie: …'`로 보낸다.

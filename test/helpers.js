@@ -4,7 +4,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 
-process.env.OPENROUTER_API_KEY ??= 'test-key'; // CI처럼 .env가 없는 환경용
+process.env.GEMINI_API_KEY ??= 'test-key'; // CI처럼 .env가 없는 환경용
+process.env.OPENROUTER_API_KEY ??= 'test-key';
 const { createApp } = await import('../src/app.js');
 const { createStorage } = await import('../src/storage/index.js');
 

@@ -42,7 +42,7 @@ tools: Read, Grep, Glob, Bash
 - 테스트는 `test/helpers.js`의 `startApp()`을 쓰고 실제 OpenRouter를 부르지 않는다. 테스트 파일은 `test/**/*.test.js` 패턴을 따른다.
 
 **AI 호출**
-- 모델 호출은 `lib/openrouter.js`의 `chat()`과 `lib/json.js`의 `chatJson()`을 거친다. 이미지는 base64 data URL로 보낸다.
+- 모델 호출은 `lib/ai.js`의 `chat()`과 `lib/json.js`의 `chatJson()`을 거친다. 이미지는 base64 data URL로 보낸다.
 - 보유 여부(`owned`, `basic`, `missingIngredients`)는 서버가 `markOwnership`으로 계산한다. 모델이나 클라이언트가 보낸 값을 믿지 않는다.
 
 **오류**
@@ -71,7 +71,7 @@ tools: Read, Grep, Glob, Bash
 
 추측이 아니라 근거(호출 횟수, 데이터 크기, 실측값)를 들어 제안한다. 효과가 작은 미세 최적화는 쓰지 않는다.
 
-- **AI 호출:** 가장 큰 비용이다. 불필요한 재요청, 프롬프트·이미지 크기, 출력 토큰 수, 추론 설정(`OPENROUTER_REASONING`)을 본다.
+- **AI 호출:** 가장 큰 비용이다. 불필요한 재요청, 프롬프트·이미지 크기, 출력 토큰 수, 추론 설정(`AI_REASONING`)을 본다.
   - 실측: 추론을 켜면 레시피 생성 28~120초, 끄면 7~9초
 - **Cosmos DB:**
   - 대상: 요청당 쿼리 수와 RU(요청 단위)

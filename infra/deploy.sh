@@ -6,7 +6,7 @@
 #
 # 환경 변수로 바꿀 수 있는 값:
 #   RESOURCE_GROUP (기본 rg-fridge-chef), LOCATION (기본 koreacentral), PREFIX (기본 fridgechef)
-#   OPENROUTER_API_KEY (없으면 .env에서 이 한 줄만 읽는다)
+#   GEMINI_API_KEY (없으면 .env에서 이 한 줄만 읽는다)
 #   SESSION_SECRET (없으면 새로 만든다. .env의 로컬 값은 쓰지 않는다)
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -16,14 +16,14 @@ LOCATION="${LOCATION:-koreacentral}"
 PREFIX="${PREFIX:-fridgechef}"
 TAG="${TAG:-$(git rev-parse --short HEAD 2>/dev/null || date +%Y%m%d%H%M%S)}"
 
-if [[ -z "${OPENROUTER_API_KEY:-}" && -f .env ]]; then
-  OPENROUTER_API_KEY="$(grep -E '^OPENROUTER_API_KEY=' .env | head -1 | cut -d= -f2- | tr -d '\r')"
+if [[ -z "${GEMINI_API_KEY:-}" && -f .env ]]; then
+  GEMINI_API_KEY="$(grep -E '^GEMINI_API_KEY=' .env | head -1 | cut -d= -f2- | tr -d '\r')"
 fi
 # 운영용 세션 키는 로컬(.env)과 다르게 새로 만든다. 이 스크립트를 다시 실행하면 키가 바뀌어 모든 사용자가 로그아웃된다.
 # 유지하려면 기존 값을 SESSION_SECRET 환경 변수로 넘긴다.
 SESSION_SECRET="${SESSION_SECRET:-$(openssl rand -hex 32)}"
-if [[ -z "${OPENROUTER_API_KEY:-}" ]]; then
-  echo "OPENROUTER_API_KEY가 없습니다. 환경 변수나 .env에 넣어 주세요." >&2
+if [[ -z "${GEMINI_API_KEY:-}" ]]; then
+  echo "GEMINI_API_KEY가 없습니다. 환경 변수나 .env에 넣어 주세요." >&2
   exit 1
 fi
 
@@ -45,7 +45,7 @@ echo "[3/3] Container App"
 PARAMS="$(mktemp)"
 trap 'rm -f "$PARAMS"' EXIT
 chmod 600 "$PARAMS"
-printf '{"openRouterApiKey":{"value":"%s"},"sessionSecret":{"value":"%s"}}' "$OPENROUTER_API_KEY" "$SESSION_SECRET" > "$PARAMS"
+printf '{"geminiApiKey":{"value":"%s"},"sessionSecret":{"value":"%s"}}' "$GEMINI_API_KEY" "$SESSION_SECRET" > "$PARAMS"
 az deployment group create -g "$RESOURCE_GROUP" -n fridge-chef-app -f infra/main.bicep \
   -p prefix="$PREFIX" deployApp=true containerImage="$ACR_NAME.azurecr.io/fridge-chef:$TAG" -p "@$PARAMS" -o none
 

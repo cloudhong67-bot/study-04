@@ -19,18 +19,19 @@ param deployApp bool = true
 param containerImage string = ''
 
 @secure()
-@description('OpenRouter API 키 → Container App secret')
-param openRouterApiKey string = ''
+@description('Gemini API 키 → Container App secret')
+param geminiApiKey string = ''
 
 @secure()
 @description('로그인 세션 쿠키 서명 키(32자 이상) → Container App secret. 바꾸면 모든 사용자가 로그아웃된다')
 param sessionSecret string = ''
 
-param aiModel string = 'nvidia/nemotron-3.5-super-vl:free'
+@description('Gemini 모델 ID (이미지 인식과 레시피 생성에 함께 사용)')
+param geminiModel string = 'gemini-3.5-flash-lite'
 
-@description('모델 내부 추론 off(빠름) / on')
+@description('모델 내부 추론 off(가장 적게, 빠름) / on(모델 기본값)')
 @allowed(['off', 'on'])
-param openRouterReasoning string = 'off'
+param aiReasoning string = 'off'
 
 @minValue(0)
 param minReplicas int = 0
@@ -186,7 +187,7 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = if (deployApp) {
       }
       registries: [{ server: acr.properties.loginServer, identity: identity.id }]
       secrets: [
-        { name: 'openrouter-api-key', value: openRouterApiKey }
+        { name: 'gemini-api-key', value: geminiApiKey }
         { name: 'session-secret', value: sessionSecret }
       ]
     }
@@ -197,10 +198,11 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = if (deployApp) {
           image: containerImage
           resources: { cpu: json('0.5'), memory: '1Gi' }
           env: [
-            { name: 'OPENROUTER_API_KEY', secretRef: 'openrouter-api-key' }
+            { name: 'AI_PROVIDER', value: 'gemini' }
+            { name: 'GEMINI_API_KEY', secretRef: 'gemini-api-key' }
             { name: 'SESSION_SECRET', secretRef: 'session-secret' }
-            { name: 'AI_MODEL', value: aiModel }
-            { name: 'OPENROUTER_REASONING', value: openRouterReasoning }
+            { name: 'GEMINI_MODEL', value: geminiModel }
+            { name: 'AI_REASONING', value: aiReasoning }
             { name: 'STORAGE_DRIVER', value: 'cosmos' }
             { name: 'COSMOS_ENDPOINT', value: cosmos.properties.documentEndpoint }
             { name: 'COSMOS_DATABASE', value: databaseName }

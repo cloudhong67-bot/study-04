@@ -36,8 +36,8 @@ export function ingredientsRouter({ chat, rateLimit = true }) {
       let result;
       try {
         result = await chatJson(chat, recognizeMessages(imageUrl), recognitionSchema, {
-          model: config.openrouter.visionModel,
-          timeoutMs: config.openrouter.timeoutMs,
+          model: config.ai.visionModel,
+          timeoutMs: config.ai.timeoutMs,
         });
       } catch (err) {
         throw err instanceof AppError ? err : errors.modelError();

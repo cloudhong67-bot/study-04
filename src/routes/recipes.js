@@ -31,7 +31,7 @@ export function recipesRouter({ chat, rateLimit = true }) {
           chat,
           recipeMessages({ ...request, count: Math.min(request.count + EXTRA_RECIPES, 6) }),
           generateResponseSchema,
-          { model: config.openrouter.textModel, timeoutMs: config.openrouter.recipeTimeoutMs },
+          { model: config.ai.textModel, timeoutMs: config.ai.recipeTimeoutMs },
         );
       } catch (err) {
         throw err instanceof AppError ? err : errors.modelError();

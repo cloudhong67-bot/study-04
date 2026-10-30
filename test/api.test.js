@@ -3,8 +3,7 @@ import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import sharp from 'sharp';
 
-process.env.OPENROUTER_API_KEY ??= 'test-key'; // CI처럼 .env가 없는 환경용
-const { createApp } = await import('../src/app.js');
+import { startApp } from './helpers.js';
 const { errors } = await import('../src/lib/errors.js');
 
 let nextReplies = [];
@@ -16,22 +15,29 @@ async function fakeChat(messages, options) {
   return { text: reply, model: 'fake-model' };
 }
 
-let server;
+let app;
 let baseUrl;
+let cookie;
 before(async () => {
-  server = createApp({ chat: fakeChat }).listen(0);
-  await new Promise((r) => server.once('listening', r));
-  baseUrl = `http://127.0.0.1:${server.address().port}`;
+  app = await startApp({ chat: fakeChat });
+  baseUrl = app.baseUrl;
+  cookie = await app.signup();
 });
-after(() => server.close());
+after(() => app.close());
 
 const png = await sharp({ create: { width: 2000, height: 1000, channels: 3, background: '#88aacc' } }).png().toBuffer();
 
-function upload(buffer, type = 'image/png') {
+function upload(buffer, type = 'image/png', { withCookie = true } = {}) {
   const body = new FormData();
   if (buffer) body.append('image', new Blob([buffer], { type }), 'fridge.png');
-  return fetch(`${baseUrl}/api/ingredients/recognize`, { method: 'POST', body });
+  return fetch(`${baseUrl}/api/ingredients/recognize`, { method: 'POST', body, headers: withCookie ? { Cookie: cookie } : {} });
 }
+
+test('로그인하지 않으면 401 UNAUTHORIZED', async () => {
+  const res = await upload(png, 'image/png', { withCookie: false });
+  assert.equal(res.status, 401);
+  assert.equal((await res.json()).error.code, 'UNAUTHORIZED');
+});
 
 test('GET /healthz', async () => {
   const res = await fetch(`${baseUrl}/healthz`);
@@ -110,7 +116,75 @@ test('10MB를 넘으면 413 IMAGE_TOO_LARGE', async () => {
 });
 
 test('없는 API는 404 JSON', async () => {
-  const res = await fetch(`${baseUrl}/api/nothing`);
+  const res = await fetch(`${baseUrl}/api/nothing`, { headers: { Cookie: cookie } });
   assert.equal(res.status, 404);
   assert.equal((await res.json()).error.code, 'NOT_FOUND');
+});
+
+test('JSON 재요청: 이미지는 빼고 직전 응답 + "JSON만 다시 출력" 지시를 보낸다', async () => {
+  calls.length = 0;
+  const bad = '재료: 우유 1팩';
+  nextReplies = [bad, '{"ingredients":[{"name":"우유","category":"유제품/계란","confidence":0.9}]}'];
+  const res = await upload(png);
+  assert.equal(res.status, 200);
+  assert.equal(calls.length, 2);
+  const [first, retry] = calls.map((c) => c.messages);
+  assert.ok(first[0].content.some((p) => p.type === 'image_url'), '처음에는 이미지를 보낸다');
+  assert.ok(!JSON.stringify(retry).includes('data:image'), '재요청에는 이미지가 없다');
+  assert.deepEqual(retry[0].content, first[0].content.filter((p) => p.type === 'text'), '규칙(텍스트)은 그대로');
+  assert.deepEqual(retry[1], { role: 'assistant', content: bad });
+  assert.equal(retry[2].role, 'user');
+  assert.match(retry[2].content, /JSON/);
+  assert.ok(JSON.stringify(retry).length < JSON.stringify(first).length, '재요청 본문이 더 작다');
+});
+
+test('JSON 재요청: 직전 응답이 비어 있으면 처음 요청(이미지 포함)을 그대로 다시 보낸다', async () => {
+  calls.length = 0;
+  nextReplies = ['  ', '{"ingredients":[{"name":"우유","category":"유제품/계란","confidence":0.9}]}'];
+  assert.equal((await upload(png)).status, 200);
+  assert.deepEqual(calls[1].messages, calls[0].messages);
+});
+
+test('픽셀 수가 너무 큰 이미지(5천만 화소 초과)는 디코딩하지 않고 413 IMAGE_TOO_LARGE', async () => {
+  calls.length = 0;
+  const huge = await sharp({ create: { width: 7100, height: 7100, channels: 3, background: '#ffffff' } }).png({ compressionLevel: 9 }).toBuffer();
+  assert.ok(huge.length < 10 * 1024 * 1024, '파일 크기는 10MB 이하');
+  const res = await upload(huge);
+  assert.equal(res.status, 413);
+  const { error } = await res.json();
+  assert.equal(error.code, 'IMAGE_TOO_LARGE');
+  assert.match(error.message, /해상도/);
+  assert.equal(calls.length, 0, '모델을 부르지 않는다');
+});
+
+test('본문 파서의 다른 4xx(모르는 Content-Encoding·charset)는 500이 아니라 400 INVALID_REQUEST', async () => {
+  const { request } = await import('node:http');
+  const send = (headers) => new Promise((resolve, reject) => {
+    const req = request(`${baseUrl}/api/recipes/generate`, { method: 'POST', headers: { Cookie: cookie, ...headers } }, (res) => {
+      let body = '';
+      res.on('data', (c) => (body += c));
+      res.on('end', () => resolve({ status: res.statusCode, body: JSON.parse(body) }));
+    });
+    req.on('error', reject);
+    req.end('{"ingredients":["달걀"]}');
+  });
+  for (const headers of [
+    { 'Content-Type': 'application/json', 'Content-Encoding': 'unknown-zip' },
+    { 'Content-Type': 'application/json; charset=klingon' },
+  ]) {
+    const { status, body } = await send(headers);
+    assert.equal(status, 400, JSON.stringify(headers));
+    assert.equal(body.error.code, 'INVALID_REQUEST');
+  }
+});
+
+test('보안 헤더: nosniff, CSP(frame-ancestors none, img-src blob: data:)', async () => {
+  for (const path of ['/login.html', '/app.js', '/healthz', '/api/nothing']) {
+    const res = await fetch(`${baseUrl}${path}`, { headers: { Cookie: cookie } });
+    assert.equal(res.headers.get('x-content-type-options'), 'nosniff', path);
+    const csp = res.headers.get('content-security-policy');
+    assert.match(csp, /default-src 'self'/, path);
+    assert.match(csp, /frame-ancestors 'none'/, path);
+    assert.match(csp, /img-src 'self' blob: data:/, path);
+  }
 });

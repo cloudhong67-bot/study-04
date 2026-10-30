@@ -2,7 +2,8 @@
   --bg: #f4f7fb;
   --card: #fff;
   --text: #1f2933;
-  --muted: #64748b;
+  /* 배경(--bg)과 카드 위 모두에서 본문 대비 4.5:1 이상 (#64748b는 --bg 위에서 4.4:1) */
+  --muted: #556274;
   --primary: #2563eb;
   --primary-dark: #1d4ed8;
   --border: #dbe3ec;
@@ -14,6 +15,9 @@
 
 * { box-sizing: border-box; }
 
+/* .loading, button.primary 등의 display 지정이 hidden 속성을 덮어쓰지 않도록 */
+[hidden] { display: none !important; }
+
 body {
   margin: 0;
   background: var(--bg);
@@ -21,13 +25,13 @@ body {
   line-height: 1.5;
 }
 
-header, main {
+body > header, main {
   max-width: 720px;
   margin: 0 auto;
   padding: 0 16px;
 }
 
-header { padding-top: 24px; }
+body > header { padding-top: 24px; }
 h1 { margin: 0; font-size: 1.6rem; }
 h2 { margin: 0 0 12px; font-size: 1.15rem; }
 h3 { margin: 16px 0 8px; font-size: 0.95rem; color: var(--muted); }
@@ -118,3 +122,202 @@ button.primary:hover:not(:disabled) { background: var(--primary-dark); }
 .add-form { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
 .add-form input, .add-form select { font: inherit; padding: 8px; border: 1px solid var(--border); border-radius: 10px; }
 .add-form input { flex: 1 1 180px; }
+
+/* ---------- 2단계: 레시피 ---------- */
+button.link {
+  display: block;
+  margin: 10px auto 0;
+  border: 0;
+  background: none;
+  color: var(--primary);
+  text-decoration: underline;
+  font-size: 0.9rem;
+}
+button.secondary {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px;
+  color: var(--primary);
+  border-color: var(--primary);
+  font-weight: 600;
+}
+
+.prefs { margin-top: 20px; border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; }
+.prefs summary { cursor: pointer; font-weight: 600; }
+.prefs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+.prefs-grid label { display: flex; flex-direction: column; gap: 4px; font-size: 0.9rem; color: var(--muted); }
+.prefs-grid select { font: inherit; padding: 6px; border: 1px solid var(--border); border-radius: 8px; color: var(--text); }
+.dietary { grid-column: 1 / -1; border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 6px 16px; }
+.dietary legend { font-size: 0.9rem; color: var(--muted); margin-bottom: 4px; }
+.dietary label { flex-direction: row; align-items: center; color: var(--text); }
+
+.error-box { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+.recipe-cards { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+.recipe-card {
+  width: 100%;
+  text-align: left;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+}
+.recipe-card:hover { border-color: var(--primary); box-shadow: 0 2px 8px rgba(37, 99, 235, 0.12); }
+.recipe-card h3 { margin: 0 0 4px; color: var(--text); font-size: 1.05rem; }
+.summary { margin: 0 0 8px; color: var(--muted); }
+.badges { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; }
+.badge { background: #eef2f7; color: #334155; border: 1px solid var(--border); }
+.badge.owned { background: #e8f6ee; color: #1b6b3a; border-color: #b9e3c8; }
+.badge.missing { background: #fdecec; color: #a12727; border-color: #f3c0c0; }
+.badge.difficulty-쉬움 { background: #e8f6ee; color: #1b6b3a; border-color: #b9e3c8; }
+.badge.difficulty-보통 { background: #fff4d6; color: #9a6700; border-color: #f0d58a; }
+.badge.difficulty-어려움 { background: #fdecec; color: #a12727; border-color: #f3c0c0; }
+
+/* 상세 보기 */
+dialog {
+  width: min(640px, calc(100vw - 24px));
+  max-height: calc(100vh - 48px);
+  padding: 0;
+  border: 0;
+  border-radius: 14px;
+  color: var(--text);
+}
+dialog::backdrop { background: rgba(15, 23, 42, 0.5); }
+dialog article { padding: 20px; }
+dialog h3 { color: var(--text); font-size: 1rem; margin-top: 20px; }
+.dialog-header { display: flex; justify-content: space-between; align-items: start; gap: 12px; }
+.dialog-header h2 { margin: 0; }
+.close { border: 0; background: none; font-size: 1.6rem; line-height: 1; padding: 0 4px; color: var(--muted); }
+.ingredient-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.ingredient-list li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ingredient-list .mark { width: 1.2em; text-align: center; font-weight: 700; }
+.ingredient-list .owned .mark { color: #1b6b3a; }
+.ingredient-list .missing .mark { color: #a12727; }
+.ingredient-list .name { font-weight: 600; }
+.ingredient-list .amount { color: var(--muted); }
+.steps { padding-left: 1.4em; margin: 0; }
+.steps li { margin-bottom: 8px; }
+.tips { margin-top: 16px; background: #eef4ff; padding: 10px 12px; border-radius: 10px; }
+.tips p { margin: 4px 0 0; }
+
+/* ---------- 3단계: 저장 / 내 레시피 ---------- */
+.tabs { display: flex; gap: 8px; margin-top: 12px; }
+.tab { border-radius: 999px; padding: 6px 16px; font-weight: 600; color: var(--muted); }
+.tab.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+button.danger {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px;
+  color: var(--error);
+  border-color: #f3c0c0;
+  background: #fff;
+  font-weight: 600;
+}
+button.danger:hover:not(:disabled) { background: #fdecec; }
+
+.saved-info { margin: 8px 0 0; font-size: 0.85rem; color: var(--muted); }
+.badge.saved { background: #e8f0fe; color: var(--primary-dark); border-color: #bcd0fb; }
+.empty { color: var(--muted); text-align: center; padding: 24px 0; }
+
+.toast {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  border: 0;
+  left: 50%;
+  /* 위쪽에 띄운다: 아래에 두면 상세 창의 저장 버튼을 가린다 */
+  top: max(16px, env(safe-area-inset-top));
+  transform: translateX(-50%);
+  /* left: 50%만 두면 남은 절반 폭에 맞춰 줄바뀜되므로 글 길이만큼 넓힌다 */
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: #1f2933;
+  color: #fff;
+  font-size: 0.9rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+}
+
+/* ---------- 로그인 ---------- */
+.user-bar { display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-top: 4px; font-size: 0.9rem; }
+.user-email { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 60vw; }
+.user-bar button.link { display: inline; margin: 0; }
+
+.auth-main { max-width: 420px; margin: 0 auto; padding: 48px 16px; }
+.auth-header { text-align: center; }
+.auth-card { padding: 24px; }
+.auth-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 20px; background: #eef2f7; padding: 4px; border-radius: 12px; }
+.auth-tab { border: 0; background: none; padding: 8px; border-radius: 9px; font-weight: 600; color: var(--muted); }
+.auth-tab.active { background: #fff; color: var(--text); box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12); }
+.auth-form { display: flex; flex-direction: column; gap: 6px; }
+.auth-form label { font-size: 0.9rem; font-weight: 600; margin-top: 8px; }
+.auth-form input { font: inherit; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; width: 100%; }
+.auth-form input:focus { outline: 2px solid var(--primary); outline-offset: 1px; border-color: var(--primary); }
+#confirm-row { display: flex; flex-direction: column; gap: 6px; }
+#confirm-row[hidden] { display: none; }
+
+/* ---------- 사용성 보강 ---------- */
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+/* 스크립트가 결과 제목으로 옮기는 포커스는 화면에 테두리를 그리지 않는다 (키보드 포커스 링은 버튼에만) */
+h2[tabindex="-1"]:focus { outline: none; }
+button:focus-visible, select:focus-visible, summary:focus-visible, .add-form input:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.edit-icon { margin-left: 4px; color: var(--muted); font-weight: 400; font-size: 0.85em; }
+.summary-hint { font-weight: 400; color: var(--muted); font-size: 0.85rem; }
+.add-form + .error { margin: 8px 0 0; }
+.empty p { margin: 0 0 12px; }
+.empty .secondary { max-width: 280px; margin: 0 auto; }
+
+/* 저장/삭제 버튼을 상세 창 아래에 고정 */
+.dialog-actions {
+  position: sticky;
+  bottom: 0;
+  margin: 16px -20px -20px;
+  padding: 4px 20px 16px;
+  background: var(--card);
+  border-top: 1px solid var(--border);
+}
+.dialog-actions .error { margin: 8px 0 0; }
+.close { min-width: 44px; min-height: 44px; margin: -8px -8px 0 0; }
+
+/* 내 레시피 카드를 여는 중 */
+.recipe-card.opening { cursor: progress; border-color: var(--primary); }
+.card-loading { display: flex; align-items: center; gap: 8px; margin-top: 8px; color: var(--muted); font-size: 0.9rem; }
+
+/* 휴대폰: 손가락으로 누르는 것은 44px 이상 */
+@media (max-width: 600px), (pointer: coarse) {
+  .tab, .user-bar button.link, button.link { min-height: 44px; }
+  .chip { padding: 0 0 0 12px; min-height: 44px; }
+  .chip-name { min-height: 44px; }
+  .remove { min-width: 44px; min-height: 44px; padding: 0; }
+  .add-form input, .add-form select, .add-form button, #retry-btn, #saved-retry-btn { min-height: 44px; }
+  .add-form button { min-width: 64px; }
+  .prefs summary { min-height: 44px; display: flex; align-items: center; flex-wrap: wrap; gap: 0 6px; }
+  .prefs summary::before { content: '▸'; }
+  .prefs[open] summary::before { content: '▾'; }
+  .prefs summary::-webkit-details-marker { display: none; }
+  .prefs summary { list-style: none; }
+  .prefs-grid select { min-height: 44px; }
+  .dietary label { min-height: 44px; gap: 8px; }
+  .dietary input { width: 20px; height: 20px; margin: 0; }
+  .auth-tab { min-height: 44px; }
+}

@@ -1,0 +1,80 @@
+# 냉장고를 부탁해 CI/CD
+# - PR, main push: 테스트(+ Cosmos DB 에뮬레이터로 저장소 계약 테스트) → Docker 이미지 빌드
+# - main push: ACR에서 이미지 빌드 → Container App 새 리비전 → /healthz 확인
+# Azure 로그인은 OIDC(비밀번호 없음). 필요한 저장소 변수(Settings → Variables):
+#   AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID, ACR_NAME, RESOURCE_GROUP, CONTAINER_APP
+# 설정 방법: DEPLOY.md
+name: CI/CD
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Cosmos DB 에뮬레이터 시작
+        run: |
+          docker run -d --name cosmos-emu -p 8081:8081 \
+            mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-preview --protocol http
+          for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:8081/ && break; sleep 2; done
+          node scripts/cosmos-emulator-setup.js
+
+      - name: 테스트 (file + cosmos 저장소 계약 포함)
+        run: npm test
+        env:
+          COSMOS_TEST_ENDPOINT: http://localhost:8081
+          # 에뮬레이터 공개 고정 키 (실제 계정 키 아님)
+          COSMOS_TEST_KEY: C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==
+
+      - name: Docker 이미지 빌드
+        run: docker build -t fridge-chef:ci .
+
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: test
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: ACR에서 이미지 빌드
+        run: az acr build -r "${{ vars.ACR_NAME }}" -t "fridge-chef:${{ github.sha }}" .
+
+      - name: Container App 새 리비전 배포
+        run: |
+          az containerapp update -n "${{ vars.CONTAINER_APP }}" -g "${{ vars.RESOURCE_GROUP }}" \
+            --image "${{ vars.ACR_NAME }}.azurecr.io/fridge-chef:${{ github.sha }}" -o none
+
+      - name: 상태 확인
+        run: |
+          FQDN="$(az containerapp show -n "${{ vars.CONTAINER_APP }}" -g "${{ vars.RESOURCE_GROUP }}" --query properties.configuration.ingress.fqdn -o tsv)"
+          curl -fsS --retry 10 --retry-delay 6 --retry-all-errors "https://$FQDN/healthz"
+          echo "배포 완료: https://$FQDN" >> "$GITHUB_STEP_SUMMARY"

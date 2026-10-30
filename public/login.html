@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>로그인 - 냉장고를 부탁해</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="auth-page">
+  <main class="auth-main">
+    <header class="auth-header">
+      <h1>🧊 냉장고를 부탁해</h1>
+      <p class="subtitle">냉장고 사진으로 재료를 찾고, 가진 재료로 만들 레시피를 추천받아 보세요.</p>
+    </header>
+
+    <section class="card auth-card">
+      <!-- 두 탭이 같은 폼 하나를 바꿔 쓰므로, 선택된 탭만 aria-controls로 폼을 가리킨다 (login.js setMode) -->
+      <div class="auth-tabs" role="tablist" aria-label="로그인 또는 회원가입">
+        <button type="button" id="tab-login" class="auth-tab active" role="tab" aria-selected="true" aria-controls="auth-form">로그인</button>
+        <button type="button" id="tab-signup" class="auth-tab" role="tab" aria-selected="false" tabindex="-1">회원가입</button>
+      </div>
+
+      <form id="auth-form" class="auth-form" role="tabpanel" aria-labelledby="tab-login" novalidate>
+        <label for="email">이메일</label>
+        <input id="email" name="email" type="email" autocomplete="username" maxlength="254" required>
+
+        <label for="password">비밀번호</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" minlength="8" maxlength="128" required aria-describedby="password-hint">
+
+        <div id="confirm-row" hidden>
+          <label for="password-confirm">비밀번호 확인</label>
+          <input id="password-confirm" name="passwordConfirm" type="password" autocomplete="new-password" maxlength="128">
+        </div>
+
+        <p id="password-hint" class="hint" hidden>비밀번호는 8자 이상으로 입력해 주세요.</p>
+        <p id="auth-error" class="error" role="alert" hidden></p>
+        <button id="submit-btn" type="submit" class="primary">로그인</button>
+      </form>
+    </section>
+  </main>
+
+  <script type="module" src="login.js"></script>
+</body>
+</html>

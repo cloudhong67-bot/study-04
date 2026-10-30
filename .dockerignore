@@ -13,3 +13,6 @@ example.js
 test-openrouter.js
 Dockerfile
 .dockerignore
+infra
+.github
+scripts

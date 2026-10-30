@@ -39,3 +39,20 @@ test('mergeIngredients: 동의어와 중복을 합치고 높은 확신도를 남
     { name: '대파', category: '채소', quantity: '1단', confidence: 0.8 },
   ]);
 });
+
+test('repairMessages: 이미지를 빼고 직전 응답과 수정 지시를 붙인다, 빈 응답이면 원래 메시지', async () => {
+  const { repairMessages, REPAIR_PROMPT } = await import('../src/lib/json.js');
+  const messages = [
+    { role: 'system', content: '규칙' },
+    { role: 'user', content: [{ type: 'text', text: '사진 규칙' }, { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,AAAA' } }] },
+  ];
+  assert.deepEqual(repairMessages(messages, '{"a":1,}'), [
+    { role: 'system', content: '규칙' },
+    { role: 'user', content: [{ type: 'text', text: '사진 규칙' }] },
+    { role: 'assistant', content: '{"a":1,}' },
+    { role: 'user', content: REPAIR_PROMPT },
+  ]);
+  assert.equal(messages[1].content.length, 2, '원래 메시지는 바꾸지 않는다');
+  assert.equal(repairMessages(messages, ''), messages);
+  assert.equal(repairMessages(messages, undefined), messages);
+});

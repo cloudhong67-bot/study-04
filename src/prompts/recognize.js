@@ -3,6 +3,7 @@ import { CATEGORIES } from '../lib/ingredients.js';
 export const RECOGNIZE_PROMPT = `너는 냉장고 사진에서 식재료를 찾아내는 도우미다.
 
 규칙:
+- 재료 이름과 notes는 한국어로만 쓴다.
 - 사진에 실제로 보이는 식재료만 적는다. 보이지 않는 것을 추측하지 않는다.
 - 확실하지 않으면 confidence를 낮게(0.7 미만) 준다.
 - 재료 이름은 한국어 일반 명칭으로 쓰고 브랜드명은 쓰지 않는다. (예: "서울우유" → "우유")

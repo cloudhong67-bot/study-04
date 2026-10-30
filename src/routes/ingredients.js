@@ -1,7 +1,7 @@
 // POST /api/ingredients/recognize: 냉장고 사진 → 식재료 목록
 import { Router } from 'express';
 import multer from 'multer';
-import rateLimit from 'express-rate-limit';
+import { limitPerMinute } from '../lib/rate-limit.js';
 import { config } from '../config.js';
 import { AppError, errors, sendError } from '../lib/errors.js';
 import { ACCEPTED_TYPES, toDataUrl } from '../lib/image.js';
@@ -16,16 +16,10 @@ const upload = multer({
   fileFilter: (req, file, cb) => cb(null, ACCEPTED_TYPES.includes(file.mimetype)),
 }).single('image');
 
-export function ingredientsRouter({ chat }) {
+export function ingredientsRouter({ chat, rateLimit = true }) {
   const router = Router();
 
-  const limiter = rateLimit({
-    windowMs: 60_000,
-    limit: 10,
-    standardHeaders: 'draft-8',
-    legacyHeaders: false,
-    handler: (req, res) => sendError(res, errors.rateLimited()),
-  });
+  const limiter = limitPerMinute(10, { enabled: rateLimit });
 
   router.post('/recognize', limiter, (req, res, next) => {
     upload(req, res, (err) => {
@@ -43,6 +37,7 @@ export function ingredientsRouter({ chat }) {
       try {
         result = await chatJson(chat, recognizeMessages(imageUrl), recognitionSchema, {
           model: config.openrouter.visionModel,
+          timeoutMs: config.openrouter.timeoutMs,
         });
       } catch (err) {
         throw err instanceof AppError ? err : errors.modelError();
